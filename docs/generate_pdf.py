@@ -180,39 +180,39 @@ def build_pdf():
     # 1. TITLE PAGE
     # =========================================================================
     story.append(Spacer(1, 40))
-    story.append(Paragraph("[Institution / University Name Placeholder]", ParagraphStyle("Inst", fontName="Helvetica", fontSize=11, alignment=1, textColor=colors.HexColor("#64748B"))))
-    story.append(Paragraph("[Department of Computer Science & Engineering]", ParagraphStyle("Dept", fontName="Helvetica-Bold", fontSize=12, alignment=1, textColor=colors.HexColor("#334155"), spaceAfter=30)))
+    story.append(Paragraph("JAIN UNIVERSITY", ParagraphStyle("Inst", fontName="Helvetica-Bold", fontSize=15, alignment=1, textColor=colors.HexColor("#1E3A8A"))))
+    story.append(Paragraph("Faculty of Engineering & Technology<br/>Department of Computer Science & Engineering (AI & ML)", ParagraphStyle("Dept", fontName="Helvetica", fontSize=11, leading=15, alignment=1, textColor=colors.HexColor("#334155"), spaceAfter=25)))
 
-    story.append(HRFlowable(width="80%", thickness=2, color=colors.HexColor("#1E3A8A"), spaceAfter=30))
+    story.append(HRFlowable(width="80%", thickness=2, color=colors.HexColor("#1E3A8A"), spaceAfter=25))
 
     story.append(Paragraph("Real-Time Server Health Monitoring and Anomaly Detection Using Apache Kafka and Machine Learning", style_title))
     story.append(Paragraph("A Six-Layer Streaming Architecture with Sliding-Window Analytics and Isolation Forest ML", style_subtitle))
 
-    story.append(HRFlowable(width="40%", thickness=1, color=colors.HexColor("#CBD5E1"), spaceAfter=35))
+    story.append(HRFlowable(width="40%", thickness=1, color=colors.HexColor("#CBD5E1"), spaceAfter=30))
 
-    story.append(Paragraph("<b>Course:</b> Data Stream Analytics", ParagraphStyle("Crs", fontName="Helvetica", fontSize=11, alignment=1, textColor=colors.HexColor("#1E293B"), spaceAfter=25)))
+    story.append(Paragraph("<b>Course:</b> Data Stream Analytics", ParagraphStyle("Crs", fontName="Helvetica", fontSize=11, alignment=1, textColor=colors.HexColor("#1E293B"), spaceAfter=20)))
 
-    # Placeholder Table
-    placeholder_data = [
-        [Paragraph("<b>Student Name:</b>", style_table_cell), Paragraph("[Student Name Placeholder]", style_table_cell)],
-        [Paragraph("<b>Registration Number:</b>", style_table_cell), Paragraph("[Registration / Roll Number Placeholder]", style_table_cell)],
-        [Paragraph("<b>Degree / Program:</b>", style_table_cell), Paragraph("[B.Tech / M.Tech Computer Science Placeholder]", style_table_cell)],
-        [Paragraph("<b>Faculty Advisor:</b>", style_table_cell), Paragraph("[Faculty Advisor / Guide Name Placeholder]", style_table_cell)],
-        [Paragraph("<b>Submission Date:</b>", style_table_cell), Paragraph("[Submission Date Placeholder]", style_table_cell)]
+    # Student Details Table
+    details_data = [
+        [Paragraph("<b>Student Name:</b>", style_table_cell), Paragraph("<b>Kabillan T A</b>", style_table_cell)],
+        [Paragraph("<b>Registration Number:</b>", style_table_cell), Paragraph("<b>23BTRCL048</b>", style_table_cell)],
+        [Paragraph("<b>Degree / Program:</b>", style_table_cell), Paragraph("B.Tech Computer Science & Engineering (AI & ML)", style_table_cell)],
+        [Paragraph("<b>Department:</b>", style_table_cell), Paragraph("Department of CSE (AI & ML)", style_table_cell)],
+        [Paragraph("<b>Institution:</b>", style_table_cell), Paragraph("Jain University", style_table_cell)]
     ]
-    t_placeholders = Table(placeholder_data, colWidths=[150, 250])
-    t_placeholders.setStyle(TableStyle([
+    t_details = Table(details_data, colWidths=[150, 250])
+    t_details.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F8FAFC")),
-        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#E2E8F0")),
+        ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#CBD5E1")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
         ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ('TOPPADDING', (0,0), (-1,-1), 6),
         ('LEFTPADDING', (0,0), (-1,-1), 12),
     ]))
-    story.append(t_placeholders)
+    story.append(t_details)
 
-    story.append(Spacer(1, 50))
-    story.append(Paragraph("Academic Mini-Project Report & System Specification", ParagraphStyle("Foot", fontName="Helvetica", fontSize=9, alignment=1, textColor=colors.HexColor("#94A3B8"))))
+    story.append(Spacer(1, 45))
+    story.append(Paragraph("Academic Mini-Project Report | Data Stream Analytics", ParagraphStyle("Foot", fontName="Helvetica", fontSize=9, alignment=1, textColor=colors.HexColor("#94A3B8"))))
     story.append(PageBreak())
 
     # =========================================================================
@@ -504,3 +504,4 @@ def build_pdf():
 
 if __name__ == "__main__":
     build_pdf()
+

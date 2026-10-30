@@ -1,6 +1,10 @@
 # Real-Time Server Health Monitoring and Anomaly Detection Using Apache Kafka and Machine Learning
 
 **Academic Project Report**  
+**Institution:** Jain University  
+**Department:** Department of Computer Science & Engineering (AI & ML)  
+**Student Name:** Kabillan T A  
+**Registration Number:** 23BTRCL048  
 **Course:** Data Stream Analytics  
 **Architecture:** Six-Layer Decoupled Real-Time Streaming Pipeline  
 **Document Classification:** Academic Technical Report  
