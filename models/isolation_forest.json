@@ -1,0 +1,50 @@
+{
+  "algorithm": "IsolationForest",
+  "library": "scikit-learn",
+  "trained_at": "2026-10-30T17:55:43.716352+00:00",
+  "num_training_samples": 4000,
+  "features": [
+    "cpu_usage",
+    "memory_usage",
+    "network_traffic",
+    "response_time"
+  ],
+  "hyperparameters": {
+    "contamination": 0.05,
+    "n_estimators": 100,
+    "random_state": 42,
+    "max_samples": "auto"
+  },
+  "evaluation_metrics": {
+    "accuracy": 0.9952,
+    "precision": 1.0,
+    "recall": 0.9132,
+    "f1_score": 0.9547
+  },
+  "feature_summary": {
+    "cpu_usage": {
+      "mean": 36.31,
+      "std": 12.4,
+      "min": 9.74,
+      "max": 99.65
+    },
+    "memory_usage": {
+      "mean": 45.84,
+      "std": 9.58,
+      "min": 31.72,
+      "max": 99.39
+    },
+    "network_traffic": {
+      "mean": 34.4,
+      "std": 66.29,
+      "min": 2.19,
+      "max": 739.07
+    },
+    "response_time": {
+      "mean": 173.79,
+      "std": 396.49,
+      "min": 33.98,
+      "max": 4495.12
+    }
+  }
+}
