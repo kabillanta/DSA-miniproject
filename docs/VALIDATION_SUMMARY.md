@@ -149,3 +149,4 @@ The following publication-grade analytical figures were generated directly from 
 
 1. **Docker Engine Initialization:** Docker Compose service definitions are verified and ready. On Windows environments, Docker Desktop must be running in GUI mode before executing `docker compose up -d`.
 2. **Live Demonstration Fallback:** The standalone local Python execution pathway (`python simulate_stream.py` + `streamlit run dashboard/app.py`) provides an identical functional demonstration without Docker daemon dependencies.
+

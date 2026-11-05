@@ -73,7 +73,15 @@ except ImportError:
                     df = pd.read_sql_query(q, self.conn, params=[limit])
                 if not df.empty:
                     df["is_anomaly"] = df["is_anomaly"].astype(bool)
-                    df["timestamp"] = pd.to_datetime(df["timestamp"])
+                    ts = pd.to_datetime(df["timestamp"])
+                    try:
+                        local_tz = datetime.now().astimezone().tzinfo
+                        if ts.dt.tz is not None:
+                            df["timestamp"] = ts.dt.tz_convert(local_tz)
+                        else:
+                            df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                    except Exception:
+                        df["timestamp"] = ts
                 return df
             except Exception:
                 return pd.DataFrame()
@@ -117,7 +125,15 @@ except ImportError:
                 q = f"SELECT * FROM server_metrics WHERE is_anomaly = 1 OR is_anomaly = TRUE ORDER BY timestamp DESC LIMIT {ph}"
                 df = pd.read_sql_query(q, self.conn, params=[limit])
                 if not df.empty:
-                    df["timestamp"] = pd.to_datetime(df["timestamp"])
+                    ts = pd.to_datetime(df["timestamp"])
+                    try:
+                        local_tz = datetime.now().astimezone().tzinfo
+                        if ts.dt.tz is not None:
+                            df["timestamp"] = ts.dt.tz_convert(local_tz)
+                        else:
+                            df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                    except Exception:
+                        df["timestamp"] = ts
                 return df
             except Exception:
                 return pd.DataFrame()
@@ -318,7 +334,7 @@ def main():
         "</div>",
         unsafe_allow_html=True
     )
-    st.sidebar.caption(f"Last Polled: {datetime.now().strftime('%H:%M:%S')}")
+    st.sidebar.caption(f"Last Polled: {datetime.now().strftime('%H:%M:%S')} (IST / Local Time)")
 
     # --------------------------------------------------------------------------
     # Main Header & System Health Status Badge
@@ -327,7 +343,7 @@ def main():
     with col_title:
         st.markdown('<div class="main-header">⚡ Real-Time Server Health & Anomaly Detection</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="sub-header"><span class="live-dot"></span> Live Distributed Telemetry Stream with Apache Kafka, 30-Event Sliding Window Analytics & Isolation Forest ML</div>',
+            '<div class="sub-header"><span class="live-dot"></span> Live Telemetry Stream | Timezone: <b>India Standard Time (IST / UTC+05:30)</b></div>',
             unsafe_allow_html=True
         )
 
@@ -667,6 +683,7 @@ python -m producer.producer
         
         if "timestamp" in display_df.columns:
             display_df["timestamp"] = pd.to_datetime(display_df["timestamp"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+            display_df = display_df.rename(columns={"timestamp": "timestamp (IST)"})
 
         # Color code anomalous rows
         def style_anomalies(row):
@@ -699,7 +716,7 @@ python -m producer.producer
         else:
             st.warning(f"⚠️ {len(df_anomalies)} anomalous operational events detected:")
             for _, anom in df_anomalies.iterrows():
-                ts_str = pd.to_datetime(anom["timestamp"]).strftime("%Y-%m-%d %H:%M:%S UTC")
+                ts_str = pd.to_datetime(anom["timestamp"]).strftime("%Y-%m-%d %H:%M:%S IST")
                 with st.expander(
                     f"🔴 [{ts_str}] Host: {anom['server_id']} — Anomaly Confidence: {float(anom['anomaly_score']):.3f}"
                 ):

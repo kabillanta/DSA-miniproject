@@ -100,9 +100,10 @@ class ServerMetricGenerator:
         else:
             metrics = baseline
 
-        now_utc = datetime.now(timezone.utc).isoformat()
+        # Format ISO-8601 timestamp with local timezone offset (IST / UTC+05:30)
+        now_ts = datetime.now().astimezone().isoformat()
         event = {
-            "timestamp": now_utc,
+            "timestamp": now_ts,
             "server_id": sid,
             "cpu_usage": float(metrics["cpu_usage"]),
             "memory_usage": float(metrics["memory_usage"]),

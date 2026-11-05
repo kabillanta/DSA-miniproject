@@ -299,7 +299,7 @@ class DatabaseManager:
 
         cursor = self.conn.cursor()
         try:
-            now_iso = datetime.now(timezone.utc).isoformat()
+            now_iso = datetime.now().astimezone().isoformat()
             if self._is_sqlite:
                 query = """
                     INSERT INTO server_summary (
@@ -395,7 +395,15 @@ class DatabaseManager:
 
             if not df.empty:
                 df["is_anomaly"] = df["is_anomaly"].astype(bool)
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                ts = pd.to_datetime(df["timestamp"])
+                try:
+                    local_tz = datetime.now().astimezone().tzinfo
+                    if ts.dt.tz is not None:
+                        df["timestamp"] = ts.dt.tz_convert(local_tz)
+                    else:
+                        df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                except Exception:
+                    df["timestamp"] = ts
             return df
         except Exception as e:
             logger.error(f"Error fetching recent metrics: {e}")
@@ -496,7 +504,15 @@ class DatabaseManager:
             """
             df = pd.read_sql_query(query, self.conn, params=[limit])
             if not df.empty:
-                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                ts = pd.to_datetime(df["timestamp"])
+                try:
+                    local_tz = datetime.now().astimezone().tzinfo
+                    if ts.dt.tz is not None:
+                        df["timestamp"] = ts.dt.tz_convert(local_tz)
+                    else:
+                        df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                except Exception:
+                    df["timestamp"] = ts
             return df
         except Exception as e:
             logger.error(f"Error fetching recent anomalies: {e}")

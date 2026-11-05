@@ -238,3 +238,4 @@ flowchart LR
    Traditional density-based algorithms (such as DBSCAN or LOF) exhibit $O(n^2)$ computational complexity, making them unsuitable for live stream scoring. Isolation Forest scales linearly at $O(T \cdot \log n)$, requiring only simple tree traversals during inference, achieving sub-millisecond scoring latencies ($< 0.4 \text{ ms}$).
 4. **Why PostgreSQL as the Serving Layer:**
    The Streamlit dashboard requires complex relational aggregations, filtering by server ID, reverse chronological sorting, and atomic summary upserts. PostgreSQL provides ACID compliance, battle-tested B-tree indexing, and standard SQL interfaces.
+
