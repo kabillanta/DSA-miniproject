@@ -82,6 +82,10 @@ except ImportError:
             if not self.conn and not self.connect():
                 return pd.DataFrame()
             try:
+                ph = "?" if self._is_sqlite else "%s"
+                if server_id and server_id != "ALL":
+                    q = f"SELECT * FROM server_summary WHERE server_id = {ph}"
+                    return pd.read_sql_query(q, self.conn, params=[server_id])
                 return pd.read_sql_query("SELECT * FROM server_summary ORDER BY server_id ASC", self.conn)
             except Exception:
                 return pd.DataFrame()
@@ -94,14 +98,14 @@ except ImportError:
                         "total_events": 0, "total_anomalies": 0, "health_status": "HEALTHY"}
             status = "CRITICAL" if "CRITICAL" in sums.get("health_status", "").values else ("WARNING" if "WARNING" in sums.get("health_status", "").values else "HEALTHY")
             return {
-                "current_cpu": round(float(sums["current_cpu"].mean()), 2),
-                "current_memory": round(float(sums["current_memory"].mean()), 2),
-                "current_network": round(float(sums["current_network"].sum()), 2),
-                "avg_response_time": round(float(sums["current_response_time"].mean()), 2),
-                "peak_cpu": round(float(sums["peak_cpu"].max()), 2),
-                "peak_memory": round(float(sums["peak_memory"].max()), 2),
-                "total_events": int(sums["total_events"].sum()),
-                "total_anomalies": int(sums["total_anomalies"].sum()),
+                "current_cpu": round(float(sums["current_cpu"].mean()), 2) if "current_cpu" in sums else 0.0,
+                "current_memory": round(float(sums["current_memory"].mean()), 2) if "current_memory" in sums else 0.0,
+                "current_network": round(float(sums["current_network"].sum()), 2) if "current_network" in sums else 0.0,
+                "avg_response_time": round(float(sums["current_response_time"].mean()), 2) if "current_response_time" in sums else 0.0,
+                "peak_cpu": round(float(sums["peak_cpu"].max()), 2) if "peak_cpu" in sums else 0.0,
+                "peak_memory": round(float(sums["peak_memory"].max()), 2) if "peak_memory" in sums else 0.0,
+                "total_events": int(sums["total_events"].sum()) if "total_events" in sums else 0,
+                "total_anomalies": int(sums["total_anomalies"].sum()) if "total_anomalies" in sums else 0,
                 "health_status": status
             }
 
@@ -126,56 +130,130 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom High-Aesthetic Styling
+# Custom High-Aesthetic Enterprise CSS
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.1rem;
-        font-weight: 700;
-        color: #1E293B;
-        margin-bottom: 0.2rem;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
+
+    .main-header {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #0F172A 0%, #2563EB 50%, #38BDF8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.2rem;
+        letter-spacing: -0.02em;
+    }
+    
     .sub-header {
-        font-size: 1.0rem;
+        font-size: 0.95rem;
         color: #64748B;
         margin-bottom: 1.2rem;
+        font-weight: 500;
     }
-    .metric-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border-radius: 10px;
-        padding: 16px;
-        color: #FFFFFF;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #334155;
+
+    /* Modern Glassmorphic Metric Cards */
+    .metric-card-container {
+        background: linear-gradient(145deg, #FFFFFF, #F8FAFC);
+        border: 1px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        position: relative;
+        overflow: hidden;
     }
-    .badge-healthy {
-        background-color: #10B981;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
+    .metric-card-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+    .metric-card-title {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         font-weight: 600;
+        color: #64748B;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .metric-card-value {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #0F172A;
+        letter-spacing: -0.02em;
+    }
+    .metric-card-delta {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+    .delta-pos { color: #DC2626; }
+    .delta-neg { color: #16A34A; }
+    .delta-neutral { color: #64748B; }
+
+    /* Health Badges */
+    .badge-healthy {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: white;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-weight: 700;
         font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
     }
     .badge-warning {
-        background-color: #F59E0B;
+        background: linear-gradient(135deg, #F59E0B, #D97706);
         color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-weight: 700;
         font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
     }
     .badge-critical {
-        background-color: #EF4444;
+        background: linear-gradient(135deg, #EF4444, #DC2626);
         color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-weight: 700;
         font-size: 0.85rem;
-        animation: pulse 1.5s infinite;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+        animation: pulse-glow 1.5s infinite;
     }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.6; }
+    @keyframes pulse-glow {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.02); opacity: 0.85; }
+    }
+
+    /* Live Pulse Indicator */
+    .live-dot {
+        height: 10px;
+        width: 10px;
+        background-color: #10B981;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 8px #10B981;
+        animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -190,37 +268,66 @@ def get_db():
 def main():
     db = get_db()
 
-    # Sidebar Controls
-    st.sidebar.image("https://img.icons8.com/fluency/96/server.png", width=64)
-    st.sidebar.title("Telemetry Controls")
+    # --------------------------------------------------------------------------
+    # Sidebar Controls & Live Testing Tools
+    # --------------------------------------------------------------------------
+    st.sidebar.markdown("### ⚡ **System Telemetry**")
     
     server_summaries = db.get_summary()
     server_list = ["ALL"]
-    if not server_summaries.empty:
+    if not server_summaries.empty and "server_id" in server_summaries.columns:
         server_list.extend(server_summaries["server_id"].tolist())
 
-    selected_server = st.sidebar.selectbox("Filter by Server ID", server_list, index=0)
-    history_limit = st.sidebar.slider("Historical Event Window", min_value=30, max_value=300, value=DASHBOARD_HISTORY_LIMIT, step=10)
-    auto_refresh = st.sidebar.checkbox("Auto-Refresh Dashboard", value=True)
+    selected_server = st.sidebar.selectbox("Filter Target Server", server_list, index=0)
+    history_limit = st.sidebar.slider("Events Buffer Window", min_value=30, max_value=300, value=DASHBOARD_HISTORY_LIMIT, step=10)
+    auto_refresh = st.sidebar.toggle("Auto-Refresh Dashboard", value=True)
     refresh_rate = st.sidebar.slider("Refresh Interval (seconds)", min_value=1, max_value=10, value=DASHBOARD_REFRESH_INTERVAL, step=1)
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("**Architecture Layers:**")
-    st.sidebar.markdown("1. 🔹 Synthetic Data Generator")
-    st.sidebar.markdown("2. 🔹 Apache Kafka Broker (`server-metrics`)")
-    st.sidebar.markdown("3. 🔹 Sliding-Window Stream Processor (30 Events)")
-    st.sidebar.markdown("4. 🔹 Scikit-Learn Isolation Forest")
-    st.sidebar.markdown("5. 🔹 PostgreSQL Serving Storage")
-    st.sidebar.markdown("6. 🔹 Streamlit Auto-Refreshing UI")
-    st.sidebar.markdown("---")
-    st.sidebar.caption(f"Last Poll: {datetime.now().strftime('%H:%M:%S')}")
+    st.sidebar.markdown("### 🧪 **Interactive Anomaly Test**")
+    anomaly_choice = st.sidebar.selectbox(
+        "Inject Anomaly Signature",
+        ["cpu_spike", "memory_exhaustion", "network_flood", "latency_spike", "cascading_failure"],
+        help="Simulate a real-time server failure to test Isolation Forest anomaly detection live."
+    )
+    if st.sidebar.button("🚨 Inject Anomaly Now", use_container_width=True):
+        try:
+            from producer.generator import ServerMetricGenerator
+            from processor.stream_processor import MetricStreamProcessor
+            target = selected_server if selected_server != "ALL" else "server-01"
+            gen = ServerMetricGenerator(server_ids=[target], anomaly_probability=1.0)
+            event = gen.generate_metric(server_id=target, force_anomaly=True, force_anomaly_type=anomaly_choice)
+            proc = MetricStreamProcessor(db_manager=db)
+            proc.process_event(event)
+            st.sidebar.success(f"Injected {anomaly_choice} on {target}!")
+            time.sleep(0.5)
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"Injection error: {e}")
 
-    # Header Title
-    col_title, col_status = st.columns([4, 1])
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(
+        "<div style='font-size: 0.8rem; color: #64748B; line-height: 1.5;'>"
+        "<b>Architecture Layers:</b><br/>"
+        "1. 🔹 Synthetic Telemetry Generator<br/>"
+        "2. 🔹 Apache Kafka Broker (<code>server-metrics</code>)<br/>"
+        "3. 🔹 30-Event Sliding-Window Processor<br/>"
+        "4. 🔹 Scikit-Learn Isolation Forest ML<br/>"
+        "5. 🔹 PostgreSQL Persistent Storage<br/>"
+        "6. 🔹 Streamlit Auto-Refreshing Dashboard"
+        "</div>",
+        unsafe_allow_html=True
+    )
+    st.sidebar.caption(f"Last Polled: {datetime.now().strftime('%H:%M:%S')}")
+
+    # --------------------------------------------------------------------------
+    # Main Header & System Health Status Badge
+    # --------------------------------------------------------------------------
+    col_title, col_status = st.columns([4, 1.2])
     with col_title:
         st.markdown('<div class="main-header">⚡ Real-Time Server Health & Anomaly Detection</div>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="sub-header">Continuous Stream Processing with Apache Kafka, Sliding-Window Rolling Analytics & Isolation Forest ML</div>',
+            '<div class="sub-header"><span class="live-dot"></span> Live Distributed Telemetry Stream with Apache Kafka, 30-Event Sliding Window Analytics & Isolation Forest ML</div>',
             unsafe_allow_html=True
         )
 
@@ -231,22 +338,20 @@ def main():
     with col_status:
         status = kpis["health_status"]
         if status == "CRITICAL":
-            st.markdown('<div style="text-align: right; margin-top: 10px;"><span class="badge-critical">🔴 CRITICAL ALERT</span></div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align: right; margin-top: 8px;"><span class="badge-critical">🚨 CRITICAL ALERT</span></div>', unsafe_allow_html=True)
         elif status == "WARNING":
-            st.markdown('<div style="text-align: right; margin-top: 10px;"><span class="badge-warning">🟡 WARNING</span></div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align: right; margin-top: 8px;"><span class="badge-warning">⚠️ WARNING ELEVATED</span></div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div style="text-align: right; margin-top: 10px;"><span class="badge-healthy">🟢 ALL HEALTHY</span></div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align: right; margin-top: 8px;"><span class="badge-healthy">✅ ALL SYSTEMS NOMINAL</span></div>', unsafe_allow_html=True)
 
     if df_metrics.empty:
-        st.info("👋 Waiting for incoming server telemetry... Ensure the Kafka Producer and Stream Processor are running.")
+        st.info("👋 Waiting for incoming server telemetry... Run the simulation script to stream events into the system:")
         st.code("""
-# Terminal 1: Train ML Model (if not already trained)
-python ml/train.py
+# Option A: Local Python Streaming Simulation
+python simulate_stream.py --interval 1.0
 
-# Terminal 2: Start Stream Processor
+# Option B: Run Kafka Producer & Consumer
 python -m processor.stream_processor
-
-# Terminal 3: Start Kafka Metric Producer
 python -m producer.producer
         """, language="bash")
         if auto_refresh:
@@ -254,38 +359,86 @@ python -m producer.producer
             st.rerun()
         return
 
-    # Sort in chronological order for graphs
+    # Sort chronological for time-series charts
     df_sorted = df_metrics.sort_values("timestamp", ascending=True).copy()
     latest_event = df_metrics.iloc[0]
 
     # --------------------------------------------------------------------------
-    # Row 1: KPI Summary Cards
+    # Row 1: Modern Styled KPI Metric Cards
     # --------------------------------------------------------------------------
     c1, c2, c3, c4, c5, c6 = st.columns(6)
 
-    cpu_val = latest_event["cpu_usage"]
-    cpu_roll = latest_event["cpu_rolling_avg"]
-    cpu_delta = f"{cpu_val - cpu_roll:+.1f}% vs roll"
+    cpu_val = float(latest_event["cpu_usage"])
+    cpu_roll = float(latest_event.get("cpu_rolling_avg", cpu_val))
+    cpu_delta = cpu_val - cpu_roll
+    cpu_class = "delta-pos" if cpu_delta > 5.0 else ("delta-neg" if cpu_delta < -5.0 else "delta-neutral")
 
-    mem_val = latest_event["memory_usage"]
-    mem_roll = latest_event["memory_rolling_avg"]
-    mem_delta = f"{mem_val - mem_roll:+.1f}% vs roll"
+    mem_val = float(latest_event["memory_usage"])
+    mem_roll = float(latest_event.get("memory_rolling_avg", mem_val))
+    mem_delta = mem_val - mem_roll
+    mem_class = "delta-pos" if mem_delta > 5.0 else ("delta-neg" if mem_delta < -5.0 else "delta-neutral")
 
     with c1:
-        st.metric(label="Current CPU", value=f"{cpu_val:.1f}%", delta=cpu_delta)
-    with c2:
-        st.metric(label="Current Memory", value=f"{mem_val:.1f}%", delta=mem_delta)
-    with c3:
-        st.metric(label="Network Traffic", value=f"{latest_event['network_traffic']:.1f} MB/s")
-    with c4:
-        st.metric(label="Avg Response Time", value=f"{latest_event['response_time']:.1f} ms")
-    with c5:
-        total_anom = kpis["total_anomalies"]
-        st.metric(label="Total Anomalies", value=f"{total_anom}", delta="Detected by ML" if total_anom > 0 else "Normal")
-    with c6:
-        st.metric(label="Total Processed", value=f"{kpis['total_events']} events")
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">⚡ CPU Load</div>
+            <div class="metric-card-value">{cpu_val:.1f}%</div>
+            <div class="metric-card-delta {cpu_class}">{cpu_delta:+.1f}% vs 30-roll</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("---")
+    with c2:
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">🧠 Memory</div>
+            <div class="metric-card-value">{mem_val:.1f}%</div>
+            <div class="metric-card-delta {mem_class}">{mem_delta:+.1f}% vs 30-roll</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c3:
+        net_val = float(latest_event["network_traffic"])
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">🌐 Network</div>
+            <div class="metric-card-value">{net_val:.1f} <span style="font-size: 1rem; font-weight: 500;">MB/s</span></div>
+            <div class="metric-card-delta delta-neutral">Throughput</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c4:
+        resp_val = float(latest_event["response_time"])
+        resp_class = "delta-pos" if resp_val > 400.0 else "delta-neg"
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">⏱️ Latency</div>
+            <div class="metric-card-value">{resp_val:.0f} <span style="font-size: 1rem; font-weight: 500;">ms</span></div>
+            <div class="metric-card-delta {resp_class}">Response Time</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c5:
+        total_anom = int(kpis["total_anomalies"])
+        anom_class = "delta-pos" if total_anom > 0 else "delta-neg"
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">🚨 Anomalies</div>
+            <div class="metric-card-value" style="color: {'#EF4444' if total_anom > 0 else '#10B981'};">{total_anom}</div>
+            <div class="metric-card-delta {anom_class}">{'Flagged by ML' if total_anom > 0 else 'All Clean'}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with c6:
+        total_events = int(kpis["total_events"])
+        st.markdown(f"""
+        <div class="metric-card-container">
+            <div class="metric-card-title">📊 Processed</div>
+            <div class="metric-card-value">{total_events}</div>
+            <div class="metric-card-delta delta-neutral">Total Stream Events</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # Row 2: Live Charts with Rolling Averages and Red Anomaly Markers
@@ -295,42 +448,42 @@ python -m producer.producer
     # 1. CPU Utilization Graph
     with chart_col1:
         fig_cpu = go.Figure()
-        # Normal trace
         fig_cpu.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
             y=df_sorted["cpu_usage"],
             mode="lines",
             name="CPU Live (%)",
-            line=dict(color="#00D2FF", width=2)
+            line=dict(color="#0284C7", width=2.2),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Live CPU: %{y:.1f}%<extra></extra>"
         ))
-        # 30-Event Rolling Average
         fig_cpu.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
             y=df_sorted["cpu_rolling_avg"],
             mode="lines",
             name="30-Event Rolling Avg",
-            line=dict(color="#FFA500", width=2, dash="dot")
+            line=dict(color="#F59E0B", width=2.2, dash="dash"),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
         ))
-        # Anomalies Highlighted in Red
         anomalies_cpu = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_cpu.empty:
             fig_cpu.add_trace(go.Scatter(
                 x=anomalies_cpu["timestamp"],
                 y=anomalies_cpu["cpu_usage"],
                 mode="markers",
-                name="🚨 Anomaly Detected",
-                marker=dict(color="#EF4444", size=10, symbol="x", line=dict(width=2, color="#FFFFFF"))
+                name="🚨 Anomaly Spike",
+                marker=dict(color="#DC2626", size=11, symbol="x", line=dict(width=2.5, color="#FFFFFF")),
+                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S}<br>CPU: %{y:.1f}%<extra></extra>"
             ))
 
         fig_cpu.update_layout(
-            title="<b>CPU Utilization (%) & Rolling Trend</b>",
-            xaxis_title="Timestamp",
-            yaxis_title="CPU (%)",
-            yaxis_range=[0, 105],
+            title=dict(text="<b>CPU Utilization (%) & 30-Event Rolling Trend</b>", font=dict(size=14, color="#1E293B")),
+            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="CPU (%)", range=[0, 105], showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
-            margin=dict(l=40, r=20, t=40, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            margin=dict(l=40, r=20, t=40, b=30),
+            height=280,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         st.plotly_chart(fig_cpu, use_container_width=True)
 
@@ -342,14 +495,16 @@ python -m producer.producer
             y=df_sorted["memory_usage"],
             mode="lines",
             name="Memory Live (%)",
-            line=dict(color="#A855F7", width=2)
+            line=dict(color="#9333EA", width=2.2),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Live Memory: %{y:.1f}%<extra></extra>"
         ))
         fig_mem.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
             y=df_sorted["memory_rolling_avg"],
             mode="lines",
             name="30-Event Rolling Avg",
-            line=dict(color="#FFA500", width=2, dash="dot")
+            line=dict(color="#F59E0B", width=2.2, dash="dash"),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
         ))
         anomalies_mem = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_mem.empty:
@@ -357,19 +512,20 @@ python -m producer.producer
                 x=anomalies_mem["timestamp"],
                 y=anomalies_mem["memory_usage"],
                 mode="markers",
-                name="🚨 Anomaly Detected",
-                marker=dict(color="#EF4444", size=10, symbol="x", line=dict(width=2, color="#FFFFFF"))
+                name="🚨 Anomaly Spike",
+                marker=dict(color="#DC2626", size=11, symbol="x", line=dict(width=2.5, color="#FFFFFF")),
+                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S}<br>Memory: %{y:.1f}%<extra></extra>"
             ))
 
         fig_mem.update_layout(
-            title="<b>Memory Utilization (%) & Rolling Trend</b>",
-            xaxis_title="Timestamp",
-            yaxis_title="Memory (%)",
-            yaxis_range=[0, 105],
+            title=dict(text="<b>Memory Utilization (%) & 30-Event Rolling Trend</b>", font=dict(size=14, color="#1E293B")),
+            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="Memory (%)", range=[0, 105], showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
-            margin=dict(l=40, r=20, t=40, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            margin=dict(l=40, r=20, t=40, b=30),
+            height=280,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         st.plotly_chart(fig_mem, use_container_width=True)
 
@@ -387,8 +543,9 @@ python -m producer.producer
             mode="lines",
             fill="tozeroy",
             name="Throughput (MB/s)",
-            line=dict(color="#3B82F6", width=2),
-            fillcolor="rgba(59, 130, 246, 0.15)"
+            line=dict(color="#2563EB", width=2.0),
+            fillcolor="rgba(37, 99, 235, 0.12)",
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Network: %{y:.1f} MB/s<extra></extra>"
         ))
         anomalies_net = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_net.empty:
@@ -396,18 +553,20 @@ python -m producer.producer
                 x=anomalies_net["timestamp"],
                 y=anomalies_net["network_traffic"],
                 mode="markers",
-                name="🚨 Traffic Spike",
-                marker=dict(color="#EF4444", size=10, symbol="x")
+                name="🚨 Traffic Flood",
+                marker=dict(color="#DC2626", size=10, symbol="x"),
+                hovertemplate="<b>TRAFFIC FLOOD SPIKE</b><br>%{x|%H:%M:%S}<br>Throughput: %{y:.1f} MB/s<extra></extra>"
             ))
 
         fig_net.update_layout(
-            title="<b>Network Traffic (MB/s)</b>",
-            xaxis_title="Timestamp",
-            yaxis_title="MB/s",
+            title=dict(text="<b>Network Bandwidth Throughput (MB/s)</b>", font=dict(size=14, color="#1E293B")),
+            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="Throughput (MB/s)", showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
-            margin=dict(l=40, r=20, t=40, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            margin=dict(l=40, r=20, t=40, b=30),
+            height=260,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         st.plotly_chart(fig_net, use_container_width=True)
 
@@ -419,14 +578,16 @@ python -m producer.producer
             y=df_sorted["response_time"],
             mode="lines",
             name="Latency (ms)",
-            line=dict(color="#10B981", width=2)
+            line=dict(color="#059669", width=2.0),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Latency: %{y:.1f} ms<extra></extra>"
         ))
         fig_resp.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
             y=df_sorted["response_time_rolling_avg"],
             mode="lines",
             name="Rolling Latency Avg",
-            line=dict(color="#FFA500", width=2, dash="dot")
+            line=dict(color="#F59E0B", width=2.0, dash="dash"),
+            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Latency: %{y:.1f} ms<extra></extra>"
         ))
         anomalies_resp = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_resp.empty:
@@ -435,51 +596,56 @@ python -m producer.producer
                 y=anomalies_resp["response_time"],
                 mode="markers",
                 name="🚨 Latency Spike",
-                marker=dict(color="#EF4444", size=10, symbol="x")
+                marker=dict(color="#DC2626", size=10, symbol="x"),
+                hovertemplate="<b>LATENCY SPIKE</b><br>%{x|%H:%M:%S}<br>Latency: %{y:.1f} ms<extra></extra>"
             ))
 
         fig_resp.update_layout(
-            title="<b>Server Latency & Response Time (ms)</b>",
-            xaxis_title="Timestamp",
-            yaxis_title="Response Time (ms)",
+            title=dict(text="<b>Server Latency & Turnaround Response Time (ms)</b>", font=dict(size=14, color="#1E293B")),
+            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            yaxis=dict(title="Response Time (ms)", showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
-            margin=dict(l=40, r=20, t=40, b=40),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            margin=dict(l=40, r=20, t=40, b=30),
+            height=260,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         st.plotly_chart(fig_resp, use_container_width=True)
 
     # --------------------------------------------------------------------------
     # Row 4: Isolation Forest Anomaly Confidence Score Timeline
     # --------------------------------------------------------------------------
-    st.subheader("🤖 Isolation Forest Anomaly Confidence Timeline")
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
     fig_score = go.Figure()
+    
+    # Scatter trace with color-coded points
+    marker_colors = ["#DC2626" if a else "#10B981" for a in df_sorted["is_anomaly"]]
     fig_score.add_trace(go.Scatter(
         x=df_sorted["timestamp"],
         y=df_sorted["anomaly_score"],
         mode="lines+markers",
         name="ML Anomaly Score",
-        line=dict(color="#64748B", width=1.5),
-        marker=dict(
-            size=6,
-            color=df_sorted["is_anomaly"].map({True: "#EF4444", False: "#10B981"})
-        )
+        line=dict(color="#94A3B8", width=1.5),
+        marker=dict(size=6, color=marker_colors),
+        hovertemplate="<b>%{x|%H:%M:%S}</b><br>Score: %{y:.4f}<extra></extra>"
     ))
-    # Threshold indicator line at 0.5
+    # Threshold indicator line at 0.50
     fig_score.add_hline(
-        y=0.5,
+        y=0.50,
         line_dash="dash",
-        line_color="#EF4444",
+        line_color="#DC2626",
+        line_width=1.8,
         annotation_text="Anomaly Decision Boundary (Score = 0.50)",
-        annotation_position="bottom right"
+        annotation_position="bottom right",
+        annotation_font=dict(color="#DC2626", size=10, weight="bold")
     )
     fig_score.update_layout(
-        xaxis_title="Timestamp",
-        yaxis_title="Anomaly Confidence [0.0 - 1.0]",
-        yaxis_range=[0, 1.05],
+        title=dict(text="<b>🤖 Isolation Forest Anomaly Confidence Score Timeline</b>", font=dict(size=14, color="#1E293B")),
+        xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+        yaxis=dict(title="Confidence [0.0 - 1.0]", range=[0, 1.05], showgrid=True, gridcolor="#F1F5F9"),
         template="plotly_white",
-        height=260,
-        margin=dict(l=40, r=20, t=30, b=30)
+        height=240,
+        margin=dict(l=40, r=20, t=35, b=25)
     )
     st.plotly_chart(fig_score, use_container_width=True)
 
@@ -496,61 +662,86 @@ python -m producer.producer
             "network_traffic", "response_time", "cpu_rolling_avg",
             "is_anomaly", "anomaly_score"
         ]
-        display_df = df_metrics[display_cols].copy()
-        display_df["timestamp"] = display_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+        available_cols = [c for c in display_cols if c in df_metrics.columns]
+        display_df = df_metrics[available_cols].copy()
+        
+        if "timestamp" in display_df.columns:
+            display_df["timestamp"] = pd.to_datetime(display_df["timestamp"]).dt.strftime("%Y-%m-%d %H:%M:%S")
 
+        # Color code anomalous rows
         def style_anomalies(row):
-            if row["is_anomaly"]:
-                return ["background-color: rgba(239, 68, 68, 0.2); font-weight: bold; color: #B91C1C;"] * len(row)
+            if row.get("is_anomaly", False):
+                return ["background-color: rgba(239, 68, 68, 0.16); font-weight: 600; color: #B91C1C;"] * len(row)
             return [""] * len(row)
 
+        fmt_metrics = {}
+        for c, f in [
+            ("cpu_usage", "{:.2f}%"),
+            ("memory_usage", "{:.2f}%"),
+            ("network_traffic", "{:.2f} MB/s"),
+            ("response_time", "{:.1f} ms"),
+            ("cpu_rolling_avg", "{:.2f}%"),
+            ("anomaly_score", "{:.4f}")
+        ]:
+            if c in display_df.columns:
+                fmt_metrics[c] = f
+
         st.dataframe(
-            display_df.style.apply(style_anomalies, axis=1).format({
-                "cpu_usage": "{:.2f}%",
-                "memory_usage": "{:.2f}%",
-                "network_traffic": "{:.2f} MB/s",
-                "response_time": "{:.1f} ms",
-                "cpu_rolling_avg": "{:.2f}%",
-                "anomaly_score": "{:.4f}"
-            }),
+            display_df.style.apply(style_anomalies, axis=1).format(fmt_metrics),
             use_container_width=True,
-            height=320
+            height=340
         )
 
     with tab2:
         df_anomalies = db.get_recent_anomalies(limit=30)
         if df_anomalies.empty:
-            st.success("✅ No anomalies detected in recent historical window. All systems nominal.")
+            st.success("✅ No anomalies detected in recent telemetry buffer. All server systems nominal.")
         else:
-            st.warning(f"⚠️ {len(df_anomalies)} anomalous server events recorded recently:")
+            st.warning(f"⚠️ {len(df_anomalies)} anomalous operational events detected:")
             for _, anom in df_anomalies.iterrows():
-                ts_str = anom["timestamp"].strftime("%Y-%m-%d %H:%M:%S UTC")
+                ts_str = pd.to_datetime(anom["timestamp"]).strftime("%Y-%m-%d %H:%M:%S UTC")
                 with st.expander(
-                    f"🔴 [{ts_str}] Server {anom['server_id']} — Anomaly Score: {anom['anomaly_score']:.3f}"
+                    f"🔴 [{ts_str}] Host: {anom['server_id']} — Anomaly Confidence: {float(anom['anomaly_score']):.3f}"
                 ):
                     c_a, c_b, c_c, c_d = st.columns(4)
-                    c_a.metric("CPU Spiked To", f"{anom['cpu_usage']:.1f}%")
-                    c_b.metric("Memory Spiked To", f"{anom['memory_usage']:.1f}%")
-                    c_c.metric("Network Traffic", f"{anom['network_traffic']:.1f} MB/s")
-                    c_d.metric("Response Time", f"{anom['response_time']:.1f} ms")
+                    c_a.metric("CPU Surged To", f"{float(anom['cpu_usage']):.1f}%")
+                    c_b.metric("Memory Surged To", f"{float(anom['memory_usage']):.1f}%")
+                    c_c.metric("Network Throughput", f"{float(anom['network_traffic']):.1f} MB/s")
+                    c_d.metric("Response Latency", f"{float(anom['response_time']):.1f} ms")
 
     with tab3:
+        # BUG FIX: Safely style server_summaries using style.format without calling non-existent DataFrame.format
         if not server_summaries.empty:
+            display_summary = server_summaries.copy()
+            
+            # Map health status into clean visual tags
+            if "health_status" in display_summary.columns:
+                display_summary["health_status"] = display_summary["health_status"].apply(
+                    lambda v: "🔴 CRITICAL" if v == "CRITICAL" else ("🟡 WARNING" if v == "WARNING" else "🟢 HEALTHY")
+                )
+
+            fmt_dict = {}
+            for col, fmt in [
+                ("current_cpu", "{:.2f}%"),
+                ("current_memory", "{:.2f}%"),
+                ("current_network", "{:.2f} MB/s"),
+                ("current_response_time", "{:.1f} ms"),
+                ("peak_cpu", "{:.2f}%"),
+                ("peak_memory", "{:.2f}%")
+            ]:
+                if col in display_summary.columns:
+                    fmt_dict[col] = fmt
+
             st.dataframe(
-                server_summaries.format({
-                    "current_cpu": "{:.2f}%",
-                    "current_memory": "{:.2f}%",
-                    "current_network": "{:.2f} MB/s",
-                    "current_response_time": "{:.1f} ms",
-                    "peak_cpu": "{:.2f}%",
-                    "peak_memory": "{:.2f}%"
-                }),
+                display_summary.style.format(fmt_dict),
                 use_container_width=True
             )
         else:
-            st.info("No server summaries available yet.")
+            st.info("No server summary records available yet. Telemetry streaming will populate this view automatically.")
 
-    # Auto-refresh loop
+    # --------------------------------------------------------------------------
+    # Auto-Refresh Execution Loop
+    # --------------------------------------------------------------------------
     if auto_refresh:
         time.sleep(refresh_rate)
         st.rerun()
