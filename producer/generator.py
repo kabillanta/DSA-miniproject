@@ -168,8 +168,8 @@ class ServerMetricGenerator:
         else:
             metrics = baseline
 
-        # Format ISO-8601 timestamp with local timezone offset (IST / UTC+05:30)
-        now_ts = datetime.now().astimezone().isoformat()
+        # Format local system timestamp in Indian Standard Time (IST)
+        now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         event = {
             "timestamp": now_ts,

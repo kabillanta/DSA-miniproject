@@ -299,7 +299,7 @@ class DatabaseManager:
 
         cursor = self.conn.cursor()
         try:
-            now_iso = datetime.now().astimezone().isoformat()
+            now_iso = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if self._is_sqlite:
                 query = """
                     INSERT INTO server_summary (
@@ -399,9 +399,9 @@ class DatabaseManager:
                 try:
                     local_tz = datetime.now().astimezone().tzinfo
                     if ts.dt.tz is not None:
-                        df["timestamp"] = ts.dt.tz_convert(local_tz)
+                        df["timestamp"] = ts.dt.tz_convert(local_tz).dt.tz_localize(None)
                     else:
-                        df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                        df["timestamp"] = ts
                 except Exception:
                     df["timestamp"] = ts
             return df
@@ -508,9 +508,9 @@ class DatabaseManager:
                 try:
                     local_tz = datetime.now().astimezone().tzinfo
                     if ts.dt.tz is not None:
-                        df["timestamp"] = ts.dt.tz_convert(local_tz)
+                        df["timestamp"] = ts.dt.tz_convert(local_tz).dt.tz_localize(None)
                     else:
-                        df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                        df["timestamp"] = ts
                 except Exception:
                     df["timestamp"] = ts
             return df

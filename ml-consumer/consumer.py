@@ -195,7 +195,7 @@ class ServerStreamConsumer:
                         server_id, current_cpu, current_memory, current_network,
                         current_response_time, peak_cpu, peak_memory, total_events,
                         total_anomalies, health_status, last_updated
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT(server_id) DO UPDATE SET
                         current_cpu = EXCLUDED.current_cpu,
                         current_memory = EXCLUDED.current_memory,
@@ -206,13 +206,14 @@ class ServerStreamConsumer:
                         total_events = EXCLUDED.total_events,
                         total_anomalies = EXCLUDED.total_anomalies,
                         health_status = EXCLUDED.health_status,
-                        last_updated = NOW()
+                        last_updated = EXCLUDED.last_updated
                 """, (
                     event["server_id"], event["cpu_usage"], event["memory_usage"],
                     event["network_traffic"], event["response_time"],
                     tracker.peak_cpu, tracker.peak_memory,
                     tracker.total_events, tracker.total_anomalies,
-                    health_status
+                    health_status, datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ))
                 ))
         except Exception as e:
             logger.error(f"Error persisting to DB: {e}")

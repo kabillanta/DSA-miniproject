@@ -77,9 +77,9 @@ except ImportError:
                     try:
                         local_tz = datetime.now().astimezone().tzinfo
                         if ts.dt.tz is not None:
-                            df["timestamp"] = ts.dt.tz_convert(local_tz)
+                            df["timestamp"] = ts.dt.tz_convert(local_tz).dt.tz_localize(None)
                         else:
-                            df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                            df["timestamp"] = ts
                     except Exception:
                         df["timestamp"] = ts
                 return df
@@ -129,9 +129,9 @@ except ImportError:
                     try:
                         local_tz = datetime.now().astimezone().tzinfo
                         if ts.dt.tz is not None:
-                            df["timestamp"] = ts.dt.tz_convert(local_tz)
+                            df["timestamp"] = ts.dt.tz_convert(local_tz).dt.tz_localize(None)
                         else:
-                            df["timestamp"] = ts.dt.tz_localize("UTC").dt.tz_convert(local_tz)
+                            df["timestamp"] = ts
                     except Exception:
                         df["timestamp"] = ts
                 return df
@@ -470,7 +470,7 @@ python -m producer.producer
             mode="lines",
             name="CPU Live (%)",
             line=dict(color="#0284C7", width=2.2),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Live CPU: %{y:.1f}%<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Live CPU: %{y:.1f}%<extra></extra>"
         ))
         fig_cpu.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
@@ -478,7 +478,7 @@ python -m producer.producer
             mode="lines",
             name="30-Event Rolling Avg",
             line=dict(color="#F59E0B", width=2.2, dash="dash"),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
         ))
         anomalies_cpu = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_cpu.empty:
@@ -488,12 +488,12 @@ python -m producer.producer
                 mode="markers",
                 name="🚨 Anomaly Spike",
                 marker=dict(color="#DC2626", size=11, symbol="x", line=dict(width=2.5, color="#FFFFFF")),
-                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S}<br>CPU: %{y:.1f}%<extra></extra>"
+                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S} IST<br>CPU: %{y:.1f}%<extra></extra>"
             ))
 
         fig_cpu.update_layout(
             title=dict(text="<b>CPU Utilization (%) & 30-Event Rolling Trend</b>", font=dict(size=14, color="#1E293B")),
-            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            xaxis=dict(title="Time (IST)", showgrid=True, gridcolor="#F1F5F9"),
             yaxis=dict(title="CPU (%)", range=[0, 105], showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
@@ -512,7 +512,7 @@ python -m producer.producer
             mode="lines",
             name="Memory Live (%)",
             line=dict(color="#9333EA", width=2.2),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Live Memory: %{y:.1f}%<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Live Memory: %{y:.1f}%<extra></extra>"
         ))
         fig_mem.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
@@ -520,7 +520,7 @@ python -m producer.producer
             mode="lines",
             name="30-Event Rolling Avg",
             line=dict(color="#F59E0B", width=2.2, dash="dash"),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Rolling Avg: %{y:.1f}%<extra></extra>"
         ))
         anomalies_mem = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_mem.empty:
@@ -530,12 +530,12 @@ python -m producer.producer
                 mode="markers",
                 name="🚨 Anomaly Spike",
                 marker=dict(color="#DC2626", size=11, symbol="x", line=dict(width=2.5, color="#FFFFFF")),
-                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S}<br>Memory: %{y:.1f}%<extra></extra>"
+                hovertemplate="<b>ANOMALY DETECTED</b><br>%{x|%H:%M:%S} IST<br>Memory: %{y:.1f}%<extra></extra>"
             ))
 
         fig_mem.update_layout(
             title=dict(text="<b>Memory Utilization (%) & 30-Event Rolling Trend</b>", font=dict(size=14, color="#1E293B")),
-            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            xaxis=dict(title="Time (IST)", showgrid=True, gridcolor="#F1F5F9"),
             yaxis=dict(title="Memory (%)", range=[0, 105], showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
@@ -561,7 +561,7 @@ python -m producer.producer
             name="Throughput (MB/s)",
             line=dict(color="#2563EB", width=2.0),
             fillcolor="rgba(37, 99, 235, 0.12)",
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Network: %{y:.1f} MB/s<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Network: %{y:.1f} MB/s<extra></extra>"
         ))
         anomalies_net = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_net.empty:
@@ -571,12 +571,12 @@ python -m producer.producer
                 mode="markers",
                 name="🚨 Traffic Flood",
                 marker=dict(color="#DC2626", size=10, symbol="x"),
-                hovertemplate="<b>TRAFFIC FLOOD SPIKE</b><br>%{x|%H:%M:%S}<br>Throughput: %{y:.1f} MB/s<extra></extra>"
+                hovertemplate="<b>TRAFFIC FLOOD SPIKE</b><br>%{x|%H:%M:%S} IST<br>Throughput: %{y:.1f} MB/s<extra></extra>"
             ))
 
         fig_net.update_layout(
             title=dict(text="<b>Network Bandwidth Throughput (MB/s)</b>", font=dict(size=14, color="#1E293B")),
-            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            xaxis=dict(title="Time (IST)", showgrid=True, gridcolor="#F1F5F9"),
             yaxis=dict(title="Throughput (MB/s)", showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
@@ -595,7 +595,7 @@ python -m producer.producer
             mode="lines",
             name="Latency (ms)",
             line=dict(color="#059669", width=2.0),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Latency: %{y:.1f} ms<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Latency: %{y:.1f} ms<extra></extra>"
         ))
         fig_resp.add_trace(go.Scatter(
             x=df_sorted["timestamp"],
@@ -603,7 +603,7 @@ python -m producer.producer
             mode="lines",
             name="Rolling Latency Avg",
             line=dict(color="#F59E0B", width=2.0, dash="dash"),
-            hovertemplate="<b>%{x|%H:%M:%S}</b><br>Rolling Latency: %{y:.1f} ms<extra></extra>"
+            hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Rolling Latency: %{y:.1f} ms<extra></extra>"
         ))
         anomalies_resp = df_sorted[df_sorted["is_anomaly"] == True]
         if not anomalies_resp.empty:
@@ -613,12 +613,12 @@ python -m producer.producer
                 mode="markers",
                 name="🚨 Latency Spike",
                 marker=dict(color="#DC2626", size=10, symbol="x"),
-                hovertemplate="<b>LATENCY SPIKE</b><br>%{x|%H:%M:%S}<br>Latency: %{y:.1f} ms<extra></extra>"
+                hovertemplate="<b>LATENCY SPIKE</b><br>%{x|%H:%M:%S} IST<br>Latency: %{y:.1f} ms<extra></extra>"
             ))
 
         fig_resp.update_layout(
             title=dict(text="<b>Server Latency & Turnaround Response Time (ms)</b>", font=dict(size=14, color="#1E293B")),
-            xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+            xaxis=dict(title="Time (IST)", showgrid=True, gridcolor="#F1F5F9"),
             yaxis=dict(title="Response Time (ms)", showgrid=True, gridcolor="#F1F5F9"),
             template="plotly_white",
             hovermode="x unified",
@@ -643,7 +643,7 @@ python -m producer.producer
         name="ML Anomaly Score",
         line=dict(color="#94A3B8", width=1.5),
         marker=dict(size=6, color=marker_colors),
-        hovertemplate="<b>%{x|%H:%M:%S}</b><br>Score: %{y:.4f}<extra></extra>"
+        hovertemplate="<b>%{x|%H:%M:%S} IST</b><br>Score: %{y:.4f}<extra></extra>"
     ))
     # Threshold indicator line at 0.50
     fig_score.add_hline(
@@ -657,7 +657,7 @@ python -m producer.producer
     )
     fig_score.update_layout(
         title=dict(text="<b>🤖 Isolation Forest Anomaly Confidence Score Timeline</b>", font=dict(size=14, color="#1E293B")),
-        xaxis=dict(title="", showgrid=True, gridcolor="#F1F5F9"),
+        xaxis=dict(title="Time (IST)", showgrid=True, gridcolor="#F1F5F9"),
         yaxis=dict(title="Confidence [0.0 - 1.0]", range=[0, 1.05], showgrid=True, gridcolor="#F1F5F9"),
         template="plotly_white",
         height=240,
@@ -736,6 +736,18 @@ python -m producer.producer
                 display_summary["health_status"] = display_summary["health_status"].apply(
                     lambda v: "🔴 CRITICAL" if v == "CRITICAL" else ("🟡 WARNING" if v == "WARNING" else "🟢 HEALTHY")
                 )
+
+            # Ensure last_updated is formatted in IST
+            if "last_updated" in display_summary.columns:
+                try:
+                    ts_upd = pd.to_datetime(display_summary["last_updated"])
+                    local_tz = datetime.now().astimezone().tzinfo
+                    if ts_upd.dt.tz is not None:
+                        ts_upd = ts_upd.dt.tz_convert(local_tz).dt.tz_localize(None)
+                    display_summary["last_updated (IST)"] = ts_upd.dt.strftime("%Y-%m-%d %H:%M:%S")
+                    display_summary = display_summary.drop(columns=["last_updated"])
+                except Exception:
+                    pass
 
             fmt_dict = {}
             for col, fmt in [
