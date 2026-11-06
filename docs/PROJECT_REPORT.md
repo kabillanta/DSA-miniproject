@@ -7,6 +7,7 @@
 **Registration Number:** 23BTRCL048  
 **Course:** Data Stream Analytics  
 **Architecture:** Six-Layer Decoupled Real-Time Streaming Pipeline  
+**GitHub Repository:** [https://github.com/kabillanta/DSA-miniproject.git](https://github.com/kabillanta/DSA-miniproject.git)  
 **Document Classification:** Academic Technical Report  
 
 ---
@@ -16,6 +17,8 @@
 2. [Introduction](#2-introduction)
 3. [Problem Statement and Objectives](#3-problem-statement-and-objectives)
 4. [System Architecture](#4-system-architecture)
+   - [4.1 Architectural Diagram and End-to-End Flowchart](#41-architectural-diagram-and-end-to-end-flowchart)
+   - [4.2 Component Responsibilities and Inter-Layer Communication](#42-component-responsibilities-and-inter-layer-communication)
 5. [Dataset Description](#5-dataset-description)
 6. [Implementation of the Six Layers](#6-implementation-of-the-six-layers)
    - [6.1 Data Source](#61-data-source)
@@ -23,12 +26,18 @@
    - [6.3 Stream Processing](#63-stream-processing)
    - [6.4 Machine Learning Model](#64-machine-learning-model)
    - [6.5 Database Layer](#65-database-layer)
-   - [6.6 Visualization Dashboard](#66-visualization-dashboard)
+   - [6.6 Visualization Dashboard (WebUI)](#66-visualization-dashboard-webui)
 7. [Machine Learning Methodology](#7-machine-learning-methodology)
 8. [Results and Observations](#8-results-and-observations)
+   - [8.1 Empirical Evaluation Metrics](#81-empirical-evaluation-metrics)
+   - [8.2 Confusion Matrix Analysis](#82-confusion-matrix-analysis)
+   - [8.3 Multi-Dimensional Telemetry Distributions](#83-multi-dimensional-telemetry-distributions)
+   - [8.4 Live Sliding-Window Stream Tracking](#84-live-sliding-window-stream-tracking)
+   - [8.5 Real-Time WebUI Dashboard Validation](#85-real-time-webui-dashboard-validation)
 9. [Conclusion](#9-conclusion)
 10. [Limitations and Future Enhancements](#10-limitations-and-future-enhancements)
-11. [References](#11-references)
+11. [Codebase Repository and Execution Guide](#11-codebase-repository-and-execution-guide)
+12. [References](#12-references)
 
 ---
 
@@ -79,57 +88,30 @@ To resolve these engineering limitations, the project delivers the following mea
 
 The implemented system adheres strictly to the six-layer decoupled streaming analytics architecture. Each layer maintains a defined separation of concerns, communicating exclusively through documented network protocols and database interfaces.
 
-### 4.1 Architectural Diagram
+### 4.1 Architectural Diagram and End-to-End Flowchart
+
+The overall architecture is visualized in Figure 0 below, showcasing the end-to-end data flow, technologies, buffer interfaces, and live feedback loops across the six layers:
+
+![Figure 0: Six-Layer Real-Time Streaming Analytics Architecture Flowchart](assets/architecture_flowchart.png)
+
+*Figure 0: Publication-grade Six-Layer Streaming Architecture Flowchart illustrating telemetry generation, Apache Kafka message partitioning, in-memory sliding window rollups, sub-millisecond Isolation Forest inference, PostgreSQL/SQLite serving, and IST-synchronized Streamlit dashboard visualization.*
+
+The detailed component interaction topology is formalized in the following pipeline sequence:
+
 ```mermaid
-flowchart TD
-    subgraph L1["Layer 1: Data Source"]
-        GEN["ServerMetricGenerator<br/>(producer/generator.py)<br/>- Diurnal Walk + Gaussian Noise<br/>- Anomaly Injections"]
-    end
+flowchart LR
+    L1["<b>Layer 1: Data Source</b><br/>ServerMetricGenerator<br/>(4D Telemetry + Anomalies)"]
+    L2["<b>Layer 2: Streaming</b><br/>Apache Kafka Broker<br/>(Topic: server-metrics)"]
+    L3["<b>Layer 3: Stream Processing</b><br/>SlidingWindowTracker<br/>(30-Event Rolling Window)"]
+    L4["<b>Layer 4: Machine Learning</b><br/>Isolation Forest ML<br/>(100 Trees, &lt;0.4ms)"]
+    L5["<b>Layer 5: Serving Database</b><br/>PostgreSQL / SQLite<br/>(server_metrics & summary)"]
+    L6["<b>Layer 6: Visualization</b><br/>Streamlit WebUI<br/>(Auto-Refresh 2s / IST)"]
 
-    subgraph L2["Layer 2: Streaming Infrastructure"]
-        KP["Kafka Producer<br/>(producer/producer.py)<br/>Key = server_id"]
-        KB[("Kafka Broker<br/>Topic: server-metrics<br/>Partitioned Buffer")]
-    end
-
-    subgraph L3["Layer 3: Stream Processing"]
-        KC["Kafka Consumer Group"]
-        SW["Sliding Window Buffer<br/>(collections.deque, maxlen=30)"]
-        RA["Rolling Analytics Engine<br/>(Averages, Peaks, Health State)"]
-    end
-
-    subgraph L4["Layer 4: Machine Learning"]
-        IF["Isolation Forest Artifact<br/>(models/isolation_forest.joblib)"]
-        INF["Inference Engine<br/>(predict -> boolean, score -> float)"]
-    end
-
-    subgraph L5["Layer 5: Database / Serving Layer"]
-        PG[("PostgreSQL Database<br/>(server_health_db)")]
-        T1["server_metrics<br/>(Telemetry + Rolling Stats + Anomaly Scores)"]
-        T2["server_summary<br/>(Current KPIs, Peaks, Health Status)"]
-    end
-
-    subgraph L6["Layer 6: Visualization Dashboard"]
-        ST["Streamlit Application<br/>(dashboard/app.py)<br/>Auto-Refresh: 2s"]
-        KPI["Live KPI Metric Cards"]
-        PLT["Plotly Charts with Red Anomaly Highlights"]
-        ALT["Recent Anomalies Alert Log & Fleet View"]
-    end
-
-    GEN -->|Validated Event| KP
-    KP -->|Produce JSON| KB
-    KB -->|Consume Stream| KC
-    KC --> SW
-    SW --> RA
-    RA -->|Feature Vector| IF
-    IF --> INF
-    INF -->|Enriched Event| PG
-    PG --> T1
-    PG --> T2
-    T1 -.->|SQL Query Polling| ST
-    T2 -.->|SQL Query Aggregates| ST
-    ST --> KPI
-    ST --> PLT
-    ST --> ALT
+    L1 -->|JSON Events (1.5s)| L2
+    L2 -->|Partitioned Stream| L3
+    L3 <-->|Feature Vector / Score| L4
+    L3 -->|Enriched Records & Upsert| L5
+    L5 -->|SQL Polling (IST)| L6
 ```
 
 ### 4.2 Component Responsibilities and Inter-Layer Communication
@@ -274,16 +256,28 @@ CREATE INDEX IF NOT EXISTS idx_server_metrics_is_anomaly ON server_metrics(is_an
 ```
 - **Table 2: `server_summary`:** Serves live aggregated KPIs updated via atomic SQL upserts (`INSERT ... ON CONFLICT (server_id) DO UPDATE`).
 
-### 6.6 Visualization Dashboard
+### 6.6 Visualization Dashboard (WebUI)
 Built using **Streamlit** and **Plotly** in `dashboard/app.py`:
-- **Auto-Refresh Mechanism:** Implemented via continuous polling every 2 seconds (`DASHBOARD_REFRESH_INTERVAL = 2`), directly querying PostgreSQL without cached data locks.
-- **Top Metric Cards:** Render current CPU utilization (with rolling delta), memory utilization, network bandwidth, response time, total detected anomalies, and total processed events.
-- **Visualizations:**
-  - Real-time CPU and Memory utilization graphs featuring dual traces (instantaneous metric line and 30-event rolling average trend line).
-  - Abnormal events highlighted with distinct **Red Markers (X)**.
+- **Auto-Refresh Mechanism:** Implemented via continuous polling every 2 seconds (`DASHBOARD_REFRESH_INTERVAL = 2`), directly querying the serving database without cached data locks.
+- **Top Metric Cards:** 6 high-contrast KPI cards rendering current CPU utilization (with rolling delta), memory utilization, network bandwidth, response time, total detected anomalies, and total processed stream events.
+- **Interactive Dual-Trace Plotly Visualizations:**
+  - Real-time CPU and Memory utilization graphs featuring dual traces (solid live metric curve and dashed 30-event rolling average trend curve).
+  - Anomalous events highlighted dynamically with distinct **Red Markers (X)**.
   - Network throughput area chart and response latency curve with critical threshold lines.
   - Anomaly confidence timeline with a decision boundary reference line at $s = 0.50$.
-- **Data Tables and Alerts:** Styled data tables highlighting anomalous rows in soft red background shading, accompanied by an expandable anomaly alerts log.
+- **Data Tables and Interactive Alert Tabs:**
+  - **Tab 1: Recent Server Events:** Styled dataframe with soft-red row highlighting for detected anomalies.
+  - **Tab 2: Anomaly Alerts Log:** Expandable cards showing host ID, timestamp, and anomaly confidence score.
+  - **Tab 3: Server Fleet Summary:** Fleet-wide table with health badges (`HEALTHY`, `WARNING`, `CRITICAL`), peak utilization, and last-updated timestamps.
+- **Full IST Timezone Synchronization:** All time axes (`Time (IST)`), hover tooltips (`%H:%M:%S IST`), and table columns display local **India Standard Time (UTC+05:30)**.
+
+![Figure 4: Streamlit WebUI Real-Time Dashboard Overview](assets/dashboard_overview.png)
+
+*Figure 4: Full-page view of the live Streamlit WebUI dashboard showcasing top KPI cards, system status badge, live dual-trace Plotly charts for CPU, Memory, Network, and Response Latency, and the Isolation Forest confidence timeline.*
+
+![Figure 5: Real-Time KPI Cards and Dual-Trace Time-Series Charts with Anomaly Spikes](assets/dashboard_kpi_charts.png)
+
+*Figure 5: Close-up of the operational metrics viewport illustrating live time-series tracking. Note the solid curves reflecting live 4D metrics, dashed orange curves tracking the 30-event rolling window averages, and red X markers identifying ML-detected anomaly spikes in local IST.*
 
 ---
 
@@ -377,6 +371,23 @@ Figure 3 demonstrates the live stream processing execution over an 80-event sequ
 
 The live CPU metric (solid blue line) fluctuates naturally with Gaussian variance. The 30-event rolling average (dashed orange line) provides a smooth representation of underlying load drift. Injected anomalous spikes trigger immediate identification (red X markers) without distorting the long-term moving baseline.
 
+### 8.5 Real-Time WebUI Dashboard Validation
+The operational fidelity of the system was verified live under continuous telemetry streaming. The Streamlit WebUI dashboard updates dynamically on every 2-second polling tick.
+
+#### 1. Live Anomaly Alerts Log (Tab 2)
+When abnormal operational patterns occur (such as sudden CPU runaway loops, memory leaks, or network floods), the Isolation Forest flags them instantly. Figure 6 shows the dedicated Anomaly Alerts Log:
+
+![Figure 6: Live Anomaly Alerts Log with ML Confidence Scores](assets/dashboard_anomaly_log.png)
+
+*Figure 6: Tab 2 of the WebUI dashboard capturing live anomaly alert cards. Each card details the event timestamp in local IST, target host ID, normalized ML confidence score, and expandable metrics detailing CPU, Memory, Network Throughput, and Response Latency.*
+
+#### 2. Server Fleet Health Summary (Tab 3)
+Figure 7 demonstrates the fleet-wide health status table:
+
+![Figure 7: Server Fleet Summary Table with Real-Time Health Status and IST Timestamps](assets/dashboard_fleet_summary.png)
+
+*Figure 7: Tab 3 of the WebUI dashboard displaying the server fleet summary table with dynamic health status badges (`CRITICAL`, `WARNING`, `HEALTHY`), current and peak resource utilization, total stream counters, and IST last-updated timestamps.*
+
 ---
 
 ## 9. Conclusion
@@ -401,7 +412,33 @@ The empirical results confirm that Isolation Forest is well-suited for multidime
 
 ---
 
-## 11. References
+## 11. Codebase Repository and Execution Guide
+
+The entire open-source implementation, Docker orchestration configurations, automated unit test suites, pre-trained ML model artifacts, and documentation are hosted on GitHub:
+
+- **Repository URL:** [https://github.com/kabillanta/DSA-miniproject.git](https://github.com/kabillanta/DSA-miniproject.git)
+- **Primary Branch:** `main`
+- **Author:** Kabillan T A (23BTRCL048), Jain University
+
+### Quick Execution Commands:
+```bash
+# 1. Clone repository
+git clone https://github.com/kabillanta/DSA-miniproject.git
+cd DSA-miniproject
+
+# 2. Run unit and integration tests (16/16 tests pass)
+python -m pytest -v
+
+# 3. Launch live telemetry stream processor
+python simulate_stream.py --interval 1.5
+
+# 4. Launch live Streamlit dashboard (in a separate terminal)
+streamlit run dashboard/app.py
+```
+
+---
+
+## 12. References
 
 1. Liu, F. T., Ting, K. M., and Zhou, Z. H., "Isolation Forest," *2008 Eighth IEEE International Conference on Data Mining*, Pisa, Italy, 2008, pp. 413-422, doi: 10.1109/ICDM.2008.17.
 2. Kreps, J., Narkhede, N., and Rao, J., "Kafka: A Distributed Messaging System for Log Processing," *Proceedings of the ACM SIGMOD Workshop on Networking Meets Databases (NetDB)*, Athens, Greece, 2011, pp. 1-7.

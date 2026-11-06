@@ -198,9 +198,10 @@ def build_pdf():
         [Paragraph("<b>Registration Number:</b>", style_table_cell), Paragraph("<b>23BTRCL048</b>", style_table_cell)],
         [Paragraph("<b>Degree / Program:</b>", style_table_cell), Paragraph("B.Tech Computer Science & Engineering (AI & ML)", style_table_cell)],
         [Paragraph("<b>Department:</b>", style_table_cell), Paragraph("Department of CSE (AI & ML)", style_table_cell)],
-        [Paragraph("<b>Institution:</b>", style_table_cell), Paragraph("Jain University", style_table_cell)]
+        [Paragraph("<b>Institution:</b>", style_table_cell), Paragraph("Jain University", style_table_cell)],
+        [Paragraph("<b>GitHub Repository:</b>", style_table_cell), Paragraph("<b>https://github.com/kabillanta/DSA-miniproject.git</b>", style_table_cell)]
     ]
-    t_details = Table(details_data, colWidths=[150, 250])
+    t_details = Table(details_data, colWidths=[130, 270])
     t_details.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#F8FAFC")),
         ('BOX', (0,0), (-1,-1), 1, colors.HexColor("#CBD5E1")),
@@ -236,9 +237,10 @@ def build_pdf():
         [Paragraph("    6.6 Visualization Dashboard", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 8", style_body)],
         [Paragraph("<b>7. Machine Learning Methodology</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 9", style_body)],
         [Paragraph("<b>8. Results and Observations</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 10", style_body)],
-        [Paragraph("<b>9. Conclusion</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 12", style_body)],
-        [Paragraph("<b>10. Limitations & Future Enhancements</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 12", style_body)],
-        [Paragraph("<b>11. References</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 13", style_body)]
+        [Paragraph("<b>9. Conclusion</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 13", style_body)],
+        [Paragraph("<b>10. Limitations & Future Enhancements</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 13", style_body)],
+        [Paragraph("<b>11. Codebase Repository & Execution Guide</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 14", style_body)],
+        [Paragraph("<b>12. References</b>", style_body), Paragraph(". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .", style_body), Paragraph("Page 14", style_body)]
     ]
     t_toc = Table(toc_data, colWidths=[180, 260, 60])
     t_toc.setStyle(TableStyle([
@@ -314,6 +316,13 @@ def build_pdf():
         style_body
     ))
 
+    # Architecture Flowchart Image
+    fig_arch_path = str(ASSETS_DIR / "architecture_flowchart.png")
+    if os.path.exists(fig_arch_path):
+        story.append(Image(fig_arch_path, width=6.5*inch, height=4.1*inch))
+        story.append(Paragraph("<b>Figure 0:</b> Six-Layer Real-Time Streaming Analytics Architecture Flowchart.", style_table_cell))
+        story.append(Spacer(1, 10))
+
     arch_table_data = [
         [Paragraph("<b>Layer</b>", style_table_head), Paragraph("<b>Component</b>", style_table_head), Paragraph("<b>Technology</b>", style_table_head), Paragraph("<b>Role in Pipeline</b>", style_table_head)],
         [Paragraph("1. Data Source", style_table_cell), Paragraph("ServerMetricGenerator", style_table_cell), Paragraph("Python 3.13, NumPy", style_table_cell), Paragraph("Continuous telemetry synthesis with diurnal variation & anomaly injection.", style_table_cell)],
@@ -328,8 +337,8 @@ def build_pdf():
         ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1E3A8A")),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#CBD5E1")),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('TOPPADDING', (0,0), (-1,-1), 4),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
     ]))
     story.append(t_arch)
 
@@ -464,6 +473,29 @@ def build_pdf():
 
     story.append(PageBreak())
 
+    # Add Figure 4 Dashboard WebUI Viewport & Charts
+    fig4_path = str(ASSETS_DIR / "dashboard_kpi_charts.png")
+    if os.path.exists(fig4_path):
+        story.append(Paragraph("<b>Real-Time WebUI Dashboard Validation:</b>", style_h2))
+        story.append(Image(fig4_path, width=6.3*inch, height=3.6*inch))
+        story.append(Paragraph("<b>Figure 4:</b> Live Streamlit WebUI Dashboard displaying glassmorphic KPI cards, status badge, dual-trace time-series charts (CPU, Memory, Network, Latency), and Isolation Forest anomaly confidence timeline in local IST.", style_table_cell))
+        story.append(Spacer(1, 10))
+
+    # Add Figure 5 Anomaly Alerts Log
+    fig5_path = str(ASSETS_DIR / "dashboard_anomaly_log.png")
+    if os.path.exists(fig5_path):
+        story.append(Image(fig5_path, width=6.3*inch, height=3.2*inch))
+        story.append(Paragraph("<b>Figure 5:</b> Tab 2 of WebUI Dashboard capturing live anomaly alerts with normalized ML confidence scores and expandable metric breakdowns.", style_table_cell))
+
+    story.append(PageBreak())
+
+    # Add Figure 6 Server Fleet Summary
+    fig6_path = str(ASSETS_DIR / "dashboard_fleet_summary.png")
+    if os.path.exists(fig6_path):
+        story.append(Image(fig6_path, width=6.3*inch, height=3.1*inch))
+        story.append(Paragraph("<b>Figure 6:</b> Tab 3 of WebUI Dashboard displaying server fleet summary table with health status tags and IST last-updated timestamps.", style_table_cell))
+        story.append(Spacer(1, 12))
+
     story.append(Paragraph("9. Conclusion", style_h1))
     story.append(Paragraph(
         "This project has successfully designed, implemented, and empirically validated a production-grade six-layer real-time "
@@ -484,7 +516,20 @@ def build_pdf():
         style_body
     ))
 
-    story.append(Paragraph("11. References", style_h1))
+    story.append(Paragraph("11. Codebase Repository and Execution Guide", style_h1))
+    story.append(Paragraph(
+        "<b>Open-Source GitHub Repository:</b> <b><u>https://github.com/kabillanta/DSA-miniproject.git</u></b><br/>"
+        "<b>Primary Branch:</b> main | <b>Author:</b> Kabillan T A (23BTRCL048), Jain University<br/>"
+        "<b>Verification Suite:</b> 16/16 Unit and Integration Tests Passed (100% Pass Rate)<br/>"
+        "<b>Execution Pathway:</b><br/>"
+        "&nbsp;&nbsp;1. Clone repository: <code>git clone https://github.com/kabillanta/DSA-miniproject.git</code><br/>"
+        "&nbsp;&nbsp;2. Run test suite: <code>python -m pytest -v</code><br/>"
+        "&nbsp;&nbsp;3. Start telemetry stream processor: <code>python simulate_stream.py --interval 1.5</code><br/>"
+        "&nbsp;&nbsp;4. Launch WebUI dashboard: <code>streamlit run dashboard/app.py</code>",
+        style_body
+    ))
+
+    story.append(Paragraph("12. References", style_h1))
     references_text = (
         "[1] F. T. Liu, K. M. Ting, and Z.-H. Zhou, 'Isolation Forest,' in <i>2008 Eighth IEEE International Conference on Data Mining</i>, Pisa, Italy, 2008, pp. 413-422.<br/>"
         "[2] J. Kreps, N. Narkhede, and J. Rao, 'Kafka: A Distributed Messaging System for Log Processing,' in <i>Proc. ACM SIGMOD NetDB Workshop</i>, Athens, Greece, 2011, pp. 1-7.<br/>"
